@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Culinária Sem Fronteiras</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #444;
+            margin-bottom: 30px;
+            font-size: 24px;
+            width: 100%;
+        }
+
+        .form-container, .list-container {
+            flex: 1;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            background-color: #28a745;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .actions button {
+            margin-left: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            border: none;
+        }
+
+        .edit {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .delete {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .edit:hover {
+            background-color: #0056b3;
+        }
+
+        .delete:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h1>Adicionar Ingrediente</h1>
+            <form id="ingredientForm">
+                <input type="hidden" id="ingredientId">
+                <label for="ingredientName">Nome do Ingrediente:</label>
+                <input type="text" id="ingredientName" required>
+                <label for="measurementType">Tipo de Medida:</label>
+                <select id="measurementType" required>
+                    <option value="" disabled selected>Selecione...</option>
+                    <option value="quantity">Quantidade</option>
+                    <option value="weight">Peso</option>
+                </select>
+                <div id="quantityContainer" style="display: none;">
+                    <label for="ingredientQuantity">Quantidade:</label>
+                    <input type="number" id="ingredientQuantity" min="0">
+                </div>
+                <div id="weightContainer" style="display: none;">
+                    <label for="ingredientWeight">Peso (ex: kg, g, L, ml):</label>
+                    <input type="text" id="ingredientWeight">
+                </div>
+                <button type="submit">Adicionar</button>
+            </form>
+        </div>
+        <div class="list-container">
+            <h1>Ingredientes Adicionados</h1>
+            <ul id="ingredientList"></ul>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const ingredientForm = document.getElementById('ingredientForm');
+            const ingredientList = document.getElementById('ingredientList');
+            const ingredientName = document.getElementById('ingredientName');
+            const measurementType = document.getElementById('measurementType');
+            const quantityContainer = document.getElementById('quantityContainer');
+            const weightContainer = document.getElementById('weightContainer');
+            const ingredientQuantity = document.getElementById('ingredientQuantity');
+            const ingredientWeight = document.getElementById('ingredientWeight');
+            const ingredientId = document.getElementById('ingredientId');
+
+            let ingredients = JSON.parse(localStorage.getItem('ingredients')) || [];
+
+            function renderIngredients() {
+                ingredientList.innerHTML = '';
+                ingredients.forEach((ingredient, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        ${ingredient.name} - ${ingredient.measurement}
+                        <div class="actions">
+                            <button class="edit" onclick="editIngredient(${index})">Editar</button>
+                            <button class="delete" onclick="deleteIngredient(${index})">Excluir</button>
+                        </div>
+                    `;
+                    ingredientList.appendChild(li);
+                });
+            }
+
+            measurementType.addEventListener('change', function() {
+                if (measurementType.value === 'quantity') {
+                    quantityContainer.style.display = 'block';
+                    weightContainer.style.display = 'none';
+                } else if (measurementType.value === 'weight') {
+                    quantityContainer.style.display = 'none';
+                    weightContainer.style.display = 'block';
+                }
+            });
+
+            ingredientForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const id = ingredientId.value;
+                const name = ingredientName.value.trim();
+                const measurement = measurementType.value === 'quantity' ? ingredientQuantity.value.trim() : ingredientWeight.value.trim();
+
+                if (name === '' || measurement === '') return;
+
+                if (id) {
+                    // Update existing ingredient
+                    ingredients[id].name = name;
+                    ingredients[id].measurement = measurement;
+                } else {
+                    // Add new ingredient
+                    ingredients.push({ name, measurement });
+                }
+
+                localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                renderIngredients();
+                ingredientForm.reset();
+                quantityContainer.style.display = 'none';
+                weightContainer.style.display = 'none';
+            });
+
+            window.editIngredient = function(index) {
+                ingredientName.value = ingredients[index].name;
+                if (ingredients[index].measurement.includes('kg') || ingredients[index].measurement.includes('g') || ingredients[index].measurement.includes('L') || ingredients[index].measurement.includes('ml')) {
+                    measurementType.value = 'weight';
+                    ingredientWeight.value = ingredients[index].measurement;
+                    weightContainer.style.display = 'block';
+                    quantityContainer.style.display = 'none';
+                } else {
+                    measurementType.value = 'quantity';
+                    ingredientQuantity.value = ingredients[index].measurement;
+                    quantityContainer.style.display = 'block';
+                    weightContainer.style.display = 'none';
+                }
+                ingredientId.value = index;
+            }
+
+            window.deleteIngredient = function(index) {
+                ingredients.splice(index, 1);
+                localStorage.setItem('ingredients', JSON.stringify(ingredients));
+                renderIngredients();
+            }
+
+            renderIngredients();
+        });
+    </script>
+</body>
+</html>
